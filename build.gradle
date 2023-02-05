@@ -37,6 +37,9 @@ dependencies {
 
     //h2의존성
     runtimeOnly('com.h2database:h2')
+
+    //mustache
+    implementation('org.springframework.boot:spring-boot-starter-mustache')
 }
 
 //test {
