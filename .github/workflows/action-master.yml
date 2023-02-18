@@ -4,6 +4,9 @@
 # documentation.
 # This workflow will build a package using Gradle and then publish it to GitHub packages when a release is created
 # For more information see: https://github.com/actions/setup-java/blob/main/docs/advanced-usage.md#Publishing-using-gradle
+env:
+  S3_BUCKET_NAME: freelec-bucket-build
+  PROJECT_NAME: freelec-springboot2-webservice
 
 name: deploy
 
@@ -42,6 +45,31 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew clean build -x test # gradle wrapper를 통해 해당 프로젝트 빌드
       shell: bash
+
+    - name: Get current time # 해당 액션의 기준이 UTC이므로 한국시간인 KST로 하기위해 offset에 +09:00을 한다.
+      uses: 1466587594/get-current-time@v2
+      id: current-time
+      with:
+        format: YYYY-MM-DDTHH-mm-ss
+        utcOffset: "+09:00"
+
+    - name: Show Current Time # 지정한 포맷대로 현재 시간을 보여준다.
+      run: echo "CurrentTime=${{steps.current-time.outputs.formattedTime}}"
+      shell: bash
+
+    - name: Make zip file # 프로젝트 이름으로 해당 폴더를 모두 압축
+      run: zip -r ./$PROJECT_NAME.zip .
+      shell: bash
+
+    - name: Configure AWS credentials # aws에 해당 키 값으로 접속 진행
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{secrets.AWS_ACCESS_KEY}}
+        aws-secret-access-key: ${{secrets.AWS_SECRET_KEY}}
+        aws-region: ap-northeast-2
+
+    - name: Upload to S3 # s3에 프로젝트 이름에 해당하는 폴더에 zip파일 저장
+      run: aws s3 cp --region ap-northeast-2 ./$PROJECT_NAME.zip s3://$S3_BUCKET_NAME/$PROJECT_NAME/$PROJECT_NAME.zip
       
     #- name: Build with Gradle
     #  uses: gradle/gradle-build-action@67421db6bd0bf253fb4bd25b31ebb98943c375e1
